@@ -1,7 +1,8 @@
 from src.my_db import MyDB
 from src.my_plots import SimpleLinePlot, SimpleBarChart
 import streamlit as st
- 
+import io
+
 class MyApp:
     def __init__(self):
         self.db = MyDB()
@@ -10,16 +11,14 @@ class MyApp:
 
     # main build_page method
     def build_page(self):
-        st.write('# My Awesome Store.com\n---')
+        st.write('# My Awesome Store.com')
         
-        st.write('## Executive Dashboard')
-
+        st.write('\n---\n## Executive Dashboard')
         self.build_sales_plot()
 
-        self.custom_columns = st.columns([1,0.1,1])
-        self.build_customer_tracker(self.custom_columns[0])
-        self.build_product_tracker(self.custom_columns[2])
-
+        st.write('\n---\n### Customer Tracker')
+        self.build_customer_tracker()
+        
         self.streamlit_defaults()
         return
     
@@ -48,15 +47,31 @@ class MyApp:
         st.pyplot(self.plot_sales.fig)
         return
     
-    def build_customer_tracker(self, 
-                               container
-                               ):
+    @st.cache_data
+    def get_customers(_self):
+        return _self.db.get_customers()
+    
+    @st.cache_data
+    def get_customer_sales(_self, cust_id):
+        return _self.db.get_customer_sales(cust_id)
+    
+    @st.cache_data
+    def get_customer_order_history(_self, cust_id):
+        return _self.db.get_customer_order_history(cust_id)
+    
+    def build_customer_tracker(self):
+        cols = st.columns([1,0.1,1])
+        self.show_customer_sales_totals(cols[0])
+        self.show_customer_order_history(cols[2])
+        self.create_download_buttons(cols[2])
+        return
+    
+    def show_customer_sales_totals(self, container):
         # Initialize a bar chart
         self.plot_cust = SimpleBarChart()
 
         # Get customer info
-        cust_info = self.db.get_customers()
-
+        cust_info = self.get_customers()
 
         # Customer selector will be formatted as either:
         #       cust_id: Name
@@ -69,7 +84,6 @@ class MyApp:
         # Depending on the option selected, build a
         # dictionary of options
         if cust_selector_options[cust_selector_order] == 0:
-            
             cust_dict = {str(cust_info['cust_id'][i]) + \
                         ': ' + cust_info['first'][i] + \
                         ' ' + cust_info['last'][i] 
@@ -77,7 +91,6 @@ class MyApp:
                         for i in range(len(cust_info))
                         }
         else:
-            
             cust_dict = {cust_info['first'][i] + \
                         ' ' + cust_info['last'][i] + \
                         ': ' + str(cust_info['cust_id'][i])
@@ -86,66 +99,63 @@ class MyApp:
                         }
             
         # Create the dropdown menu for selecting a customer, based on above options
+        # First check if a customer was previously selected
+        if 'cust_index' in st.session_state:
+            index = st.session_state['cust_index']
+        else:
+            index = 0
+        
         cust_selector = container.selectbox('Select customer',
                                             cust_dict,
-                                            index=0)
+                                            index=int(index))
         
-        # Store the currently selected option
+        # Store the currently selected cust_id
         cust_selected = cust_dict[cust_selector]
 
-        # Get the data
-        data = self.db.get_customer_sales(cust_selected)
+        # Store selection info in the session state
+        st.session_state['cust_id'] = cust_selected
+        # Index of the currently selected customer in the dropdown
+        #  (Don't assume it's the same number as cust_id)
+        cust_index = list(cust_dict.values()).index(cust_selected)
+        st.session_state['cust_index'] = cust_index
+        # Save the customer name to the session state for other processes to access
+        st.session_state['cust_name'] = cust_info['first'][cust_index] + ' ' +  cust_info['last'][cust_index]
+        
+        # Get the sales data
+        data = self.get_customer_sales(cust_selected)
         
         # Plot it
         self.plot_cust.update_plot(data['year'], data['Sales'])
         container.pyplot(self.plot_cust.fig)
         return
     
-    def build_product_tracker(self, 
-                              container
-                              ):
-        # Initialize a bar chart
-        self.plot_prod = SimpleBarChart()
+    def show_customer_order_history(self,
+                                    container
+                                    ):
+        container.write('Order History')
 
-        # Get product info
-        prod_info = self.db.get_products()
-
-        prod_selector_options = {'ID first': 0, 'Name first': 1}
-        prod_selector_order = container.radio('How to select products?',
-                                               prod_selector_options,
-                                               horizontal=True)
-
-        if prod_selector_options[prod_selector_order] == 0:
-            
-            prod_dict = {str(prod_info['prod_id'][i]) + \
-                        ': ' + prod_info['prod_desc'][i] \
-                        : prod_info['prod_id'][i]
-                        for i in range(len(prod_info))
-                        }
-        else:
-            
-            prod_dict = {prod_info['prod_desc'][i] + \
-                        ': ' + str(prod_info['prod_id'][i])
-                        : prod_info['prod_id'][i]
-                        for i in range(len(prod_info))
-                        }
-            
-        # Create the dropdown menu for selecting a customer, based on above options
-        prod_selector = container.selectbox('Select product',
-                                            prod_dict,
-                                            index=0)
-        
-        # Store the currently selected option
-        prod_selected = prod_dict[prod_selector]
-
-        # Get the data
-        data = self.db.get_product_sales(prod_selected)
-
-        # Plot the data
-        self.plot_prod.ax.bar(data['year'], data['Sales'])
-        container.pyplot(self.plot_prod.fig)
+        data = self.db.get_customer_order_history(st.session_state['cust_id'])
+        container.write(data)
         return
     
+    def create_download_buttons(self, 
+                                container):
+        cols = container.columns(2)
+        # Download the figure
+        img = io.BytesIO()
+        self.plot_cust.fig.savefig(img, format='svg')
+        filename = st.session_state['cust_name']
+        cols[0].download_button(label='Download Plot',
+                                data = img,
+                                file_name = filename + '.svg',
+                                mime='image/svg')
+        
+        data = self.get_customer_sales(st.session_state['cust_id'])
+        cols[1].download_button(label='Download Data',
+                                data = data.to_csv(),
+                                file_name = filename + '.csv',
+                                mime='text/csv')
+        return
 
 #endregion
 

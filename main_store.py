@@ -2,6 +2,8 @@
 
 # A database to store and retrieve data
 
+# [_] When switching how to display customers, retain current selection
+
 # An interface with:
 #   plot
 #   tabular data

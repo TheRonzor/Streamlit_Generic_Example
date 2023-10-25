@@ -60,6 +60,20 @@ class MyDB:
             ;"""
         return  self.run_query(sql, {'cust_id': int(cust_id)})
     
+    def get_customer_order_history(self,
+                                   cust_id: int
+                                   ) -> pd.DataFrame:
+        sql = """
+            SELECT date, order_id, sum(qty*unit_price) as Sales
+            FROM tOrder
+            JOIN tOrderDetail USING (order_id)
+            JOIN tProd USING (prod_id)
+            WHERE cust_id = :cust_id
+            GROUP BY order_id
+            ;"""
+        
+        return self.run_query(sql, {'cust_id': int(cust_id)})
+    
     def get_products(self) -> pd.DataFrame:
         sql = """
             SELECT prod_id, prod_desc
