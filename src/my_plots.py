@@ -8,17 +8,17 @@ class SimpleLinePlot:
         return
     
     def update_plot(self, 
-                    x_data: list, 
-                    y_data: list,
-                    x_label: str,
-                    y_label: str,
-                    x_lim: tuple = None,
-                    y_lim: tuple = None,
-                    x_ticks: list = None,
-                    x_ticklabels: list = None,
-                    y_ticks: list = None,
-                    y_ticklabels: list = None,
-                    style = '-kx'
+                    x_data          :list, 
+                    y_data          :list,
+                    x_label         :str,
+                    y_label         :str,
+                    x_lim           :tuple  = None,
+                    y_lim           :tuple  = None,
+                    x_ticks         :list   = None,
+                    x_ticklabels    :list   = None,
+                    y_ticks         :list   = None,
+                    y_ticklabels    :list   = None,
+                    style           :str    = '-kx'
                     ) -> None:
         
         self.ax.plot(x_data, y_data, style)
@@ -53,7 +53,19 @@ class SimpleLinePlot:
         return
 
 class SimpleBarChart:
+    '''
+    This example is much simpler than the SimpleLinePlot
+    so I'm not wasting time duplicating effort!
+    '''
     def __init__(self):
-        self.fig, self.ax = plt.subplots(figsize=(8,4))
+        self.fig, self.ax = plt.subplots(figsize=(4,4))
+        return
+    
+    def update_plot(self, 
+                    x_labels: list[str], 
+                    y_data: list
+                    ) -> None:
+        
+        self.ax.bar(x_labels, y_data)
         return
     

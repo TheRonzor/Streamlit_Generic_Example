@@ -46,7 +46,7 @@ class MyDB:
         return self.run_query(sql)
     
     def get_customer_sales(self, 
-                           cust_id:int,
+                           cust_id:int
                            ) -> pd.DataFrame:
         sql = """
             SELECT substr(date,1,4) as year,
@@ -58,6 +58,28 @@ class MyDB:
             GROUP BY year
             ORDER BY year ASC
             ;"""
-        return  self.run_query(sql, {'cust_id': cust_id})
+        return  self.run_query(sql, {'cust_id': int(cust_id)})
+    
+    def get_products(self) -> pd.DataFrame:
+        sql = """
+            SELECT prod_id, prod_desc
+            FROM tProd
+            ;"""
+        return self.run_query(sql)
+    
+    def get_product_sales(self, 
+                          prod_id:int
+                          ) -> pd.DataFrame:
+        sql = """
+            SELECT substr(date,1,4) as year,
+                   sum(qty*unit_price) as Sales
+            FROM tOrder
+            JOIN tOrderDetail USING (order_id)
+            JOIN tProd USING(prod_id)
+            WHERE prod_id = :prod_id
+            GROUP BY year
+            ORDER BY year ASC
+            ;"""
+        return  self.run_query(sql, {'prod_id': int(prod_id)})
     
     
