@@ -19,22 +19,52 @@ import streamlit as st
 #  
 
 class RegressionApp:
+    DFLT_ALPHA = 0
     def __init__(self):
         self.alpha = 0
         self.build_page()
         return
     
+    def set_alpha(self, alpha):
+        st.session_state['alpha'] = round(alpha, 5)    
+        return
+    
+    def get_alpha(self):
+        if 'alpha' in st.session_state:
+            return st.session_state['alpha']
+        else:
+            self.set_alpha(self.DFLT_ALPHA)
+            return self.get_alpha()
+    
+    def get_da(self):
+        print(self.da)
+        return float(self.da)
+    
+    def increase_alpha(self):
+        new_alpha = self.get_alpha() + self.get_da()
+        print(new_alpha)
+        self.set_alpha(new_alpha)
+        return
+    
+    def decrease_alpha(self):
+        new_alpha = self.get_alpha() - self.get_da()
+        print(new_alpha)
+        self.set_alpha(new_alpha)
+        return
+        
     def build_page(self):
         st.write('# Ridge Regression')
 
-        cols = st.columns([1,1])
-        alpha_cols = cols[0].columns(3)
-        alpha_cols[0].button('Decrease $\\alpha$')
-        alpha_cols[1].write('$\\alpha=' + str(self.alpha) + '$')
-        alpha_cols[2].button('Increase $\\alpha$') 
-
+        # Alpha controls
+        alpha_cols = st.columns(6)
+        alpha_cols[0].write('   $\\alpha=$' + str(self.get_alpha()))
+        self.da = alpha_cols[0].text_input(label='Step size', value=1)
+        alpha_cols[1].write(' ')
+        alpha_cols[1].button('Decrease $\\alpha$', on_click=self.decrease_alpha)
+        alpha_cols[1].button('Increase $\\alpha$', on_click=self.increase_alpha) 
+        
         # placeholder
-        fig,ax = plt.subplots(figsize=(4,4))
+        fig, ax = plt.subplots(figsize=(4,4))
         st.pyplot(fig)
         return
 
