@@ -19,36 +19,44 @@ import streamlit as st
 #  
 
 class RegressionApp:
-    DFLT_ALPHA = 0
+    DEFAULTS = {'alpha' : 0,
+                'da'    : 1
+                }
+
     def __init__(self):
-        self.alpha = 0
+        self.state_manager()
         self.build_page()
         return
     
-    def set_alpha(self, alpha):
-        st.session_state['alpha'] = round(alpha, 5)    
+    def state_manager(self):
+        '''
+        Ensure relevant variables/objects exist in the session_state
+        If they do not, then create and set to default values
+        '''
+        for key, value in self.DEFAULTS.items():
+            if key not in st.session_state:
+                st.session_state[key] = value
         return
     
     def get_alpha(self):
-        if 'alpha' in st.session_state:
-            return st.session_state['alpha']
-        else:
-            self.set_alpha(self.DFLT_ALPHA)
-            return self.get_alpha()
+        return float(st.session_state['alpha'])
+    
+    def set_alpha(self, 
+                  alpha
+                  ):
+        st.session_state['alpha'] = round(alpha, 5)    
+        return
     
     def get_da(self):
-        print(self.da)
-        return float(self.da)
-    
+        return float(st.session_state['da'])
+
     def increase_alpha(self):
-        new_alpha = self.get_alpha() + self.get_da()
-        print(new_alpha)
-        self.set_alpha(new_alpha)
+        self.set_alpha(self.get_alpha() + self.get_da())
         return
     
     def decrease_alpha(self):
         new_alpha = self.get_alpha() - self.get_da()
-        print(new_alpha)
+        new_alpha = max(new_alpha, 0)
         self.set_alpha(new_alpha)
         return
         
@@ -58,10 +66,13 @@ class RegressionApp:
         # Alpha controls
         alpha_cols = st.columns(6)
         alpha_cols[0].write('   $\\alpha=$' + str(self.get_alpha()))
-        self.da = alpha_cols[0].text_input(label='Step size', value=1)
-        alpha_cols[1].write(' ')
+        st.session_state['da'] = alpha_cols[1].select_slider('Step size', 
+                                                             options = [0.001, 0.01, 0.1, 1, 10, 100], 
+                                                             value = self.get_da()
+                                                             )
+        alpha_cols[0].write('_empty_line_')
         alpha_cols[1].button('Decrease $\\alpha$', on_click=self.decrease_alpha)
-        alpha_cols[1].button('Increase $\\alpha$', on_click=self.increase_alpha) 
+        alpha_cols[1].button('Increase $\\alpha$', on_click=self.increase_alpha)
         
         # placeholder
         fig, ax = plt.subplots(figsize=(4,4))
@@ -82,8 +93,6 @@ class RegressionPlot:
         self.ax.set_ylabel('$y$')
         self.ax.legend(loc='center left', bbox_to_anchor = [1,0.5])
         return
-    
-
 
 class SomeRegression:
     def __init__(self,
