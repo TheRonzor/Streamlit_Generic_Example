@@ -19,11 +19,20 @@ import streamlit as st
 #  
 
 class RegressionApp:
-    DEFAULTS = {'alpha' : 0,
-                'da'    : 1
+    DEFAULTS = {'alpha'  : 0,
+                'da'     : 1,
+                'degree' : 6
                 }
 
     def __init__(self):
+
+        if 'model' not in st.session_state:
+            self.model = SomeRegression()
+            self.model.make_data()
+            st.session_state['model'] = self.model
+        else:
+            self.model = st.session_state['model']
+
         self.state_manager()
         self.build_page()
         return
@@ -63,20 +72,37 @@ class RegressionApp:
     def build_page(self):
         st.write('# Ridge Regression')
 
-        # Alpha controls
-        alpha_cols = st.columns(6)
-        alpha_cols[0].write('   $\\alpha=$' + str(self.get_alpha()))
-        st.session_state['da'] = alpha_cols[1].select_slider('Step size', 
-                                                             options = [0.001, 0.01, 0.1, 1, 10, 100], 
-                                                             value = self.get_da()
-                                                             )
-        alpha_cols[0].write('_empty_line_')
-        alpha_cols[1].button('Decrease $\\alpha$', on_click=self.decrease_alpha)
-        alpha_cols[1].button('Increase $\\alpha$', on_click=self.increase_alpha)
+        # Controls
+        cols = st.columns(5)
+        st.session_state['da'] = cols[1].selectbox(label='Step size', 
+                                                   options = [0.001, 
+                                                              0.01, 
+                                                              0.1, 
+                                                              1, 
+                                                              10],
+                                                   index=2
+                                                   )
+        cols[1].write('$\\alpha=' + str(self.get_alpha()) + '$')
+
+        cols[0].button('Decrease $\\alpha$', on_click=self.decrease_alpha)
+        cols[0].button('Increase $\\alpha$', on_click=self.increase_alpha)
         
+        st.session_state['degree'] = cols[2].selectbox(label = 'Polynomial degree', 
+                                                       options = list(range(1,11))
+                                                       )
+        
+        # Update the regression with current settings
+        self.model.p = st.session_state['degree']
+        self.model.a = st.session_state['alpha']
+        self.model.fit_model()
+
+        # Create the figure
+        self.model.make_curve()
+        self.plotter = RegressionPlot(self.model)
+
         # placeholder
         fig, ax = plt.subplots(figsize=(4,4))
-        st.pyplot(fig)
+        st.pyplot(self.plotter.fig)
         return
 
 class RegressionPlot:
@@ -103,10 +129,6 @@ class SomeRegression:
         self.n = n_points
         self.p = poly_degree
         self.a = alpha
-
-        self.make_data()
-        self.fit_model()
-        self.make_curve()
         return
 
     def make_data(self):
