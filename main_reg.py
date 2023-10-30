@@ -71,33 +71,46 @@ class RegressionApp:
         
     def build_page(self):
         st.write('# Ridge Regression')
+        st.write('''Random data will be generated each time the page is reloaded. 
+                 The true pattern will always be a line with a slope of 2, an intercept of 0, and some Gaussian noise with
+                 $\\sigma=0.2$ will be added to $y$.
+                 Here you can explore the effects of Ridge regularization in removing/reducing
+                 the higher order terms in a polynomial mdoel that initially overfits the data.
+                 ''')
 
         # Controls
         cols = st.columns(5)
         st.session_state['da'] = cols[1].selectbox(label='Step size', 
-                                                   options = [0.001, 
+                                                   options = [0.0001,
+                                                              0.001, 
                                                               0.01, 
                                                               0.1, 
                                                               1, 
-                                                              10],
-                                                   index=2
+                                                              10,
+                                                              100],
+                                                   index=0
                                                    )
         cols[1].write('$\\alpha=' + str(self.get_alpha()) + '$')
 
         cols[0].button('Decrease $\\alpha$', on_click=self.decrease_alpha)
         cols[0].button('Increase $\\alpha$', on_click=self.increase_alpha)
         
+        degree_options = list(range(1,11))
         st.session_state['degree'] = cols[2].selectbox(label = 'Polynomial degree', 
-                                                       options = list(range(1,11))
-                                                       )
+                                                       options = degree_options,
+                                                       index = len(degree_options)-1)
         
         # Update the regression with current settings
         self.model.p = st.session_state['degree']
         self.model.a = st.session_state['alpha']
         self.model.fit_model()
 
+        # Show equation
+        st.write('When coefficients round to 0 within 2 decimals, they will no longer be displayed:')
+        st.write(self.model.get_equation())
+
         # Create the figure
-        self.model.make_curve()
+        self.model.make_plot_data()
         self.plotter = RegressionPlot(self.model)
 
         # placeholder
@@ -112,11 +125,21 @@ class RegressionPlot:
         self.data = data
         self.fig, self.ax = plt.subplots(figsize=(4,4))
         
-        self.ax.scatter(self.data.x, self.data.y, color='r', label='data')
+        self.ax.scatter(self.data.X_data, self.data.y, color='r', label='data')
         self.ax.plot(self.data.x_model, self.data.y_model, color='k', label='model')
 
-        self.ax.set_xlabel('$x$')
-        self.ax.set_ylabel('$y$')
+        #self.ax.set_xlabel('$x$')
+        #self.ax.set_ylabel('$y$')
+
+        self.ax.set_xlabel('x')
+        self.ax.set_ylabel('y')
+
+        padding = 0.1
+        self.ax.set_xlim([min(self.data.X_data)-padding, 
+                          max(self.data.X_data)+padding])
+        self.ax.set_ylim([min(self.data.y)-padding, 
+                          max(self.data.y)+padding])
+
         self.ax.legend(loc='center left', bbox_to_anchor = [1,0.5])
         return
 
@@ -132,8 +155,9 @@ class SomeRegression:
         return
 
     def make_data(self):
+        print('\n\n\ndata created\n\n\n')
         x = np.random.random(size=self.n)
-        y = 2*x + np.random.normal(scale=0.2, size=self.n)
+        y = 1 + 2*x# + np.random.normal(scale=0.2, size=self.n)
         self.x = x
         self.y = y
         return
@@ -150,13 +174,29 @@ class SomeRegression:
         self.model = model
         return
 
-    def make_curve(self, res=100):
-        x_model = np.linspace(min(self.x.ravel()), max(self.x.ravel()), res)
+    def make_plot_data(self, res=100):
+        # Model is fit to self.X...
+        self.X_data = self.X[:,1]
+
+        x_model = np.linspace(min(self.X_data.ravel()), max(self.X_data.ravel()), res)
         X_model = self.pf.transform(x_model.reshape(-1,1))
         X_model = self.ss.transform(X_model)
-        self.x_model = x_model
+        self.x_model = X_model[:,1]
         self.y_model = self.model.predict(X_model)
         return
+    
+    def get_equation(self, fmt='.1f'):
+        eq = '$y \\approx' + format(self.model.intercept_, fmt)
+        for p,c in enumerate(self.model.coef_[1:]):
+            if round(abs(c),2) > 0:
+                if p == 0:
+                    eq += '+' + format(c, fmt) + 'x'
+                else:
+                    eq += '+' + format(c, fmt) + 'x^{' + str(p+1) + '}'
+        eq += '$'
+        eq = eq.replace('+-', '-')
+        return eq
+
 
 if __name__ == '__main__':
     RegressionApp()
