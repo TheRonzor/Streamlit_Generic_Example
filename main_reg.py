@@ -12,12 +12,6 @@ import matplotlib.pyplot as plt
 # Libararies used for app
 import streamlit as st
 
-
-# ToDo:
-
-#  Need to create data once and save it (make a button for new data)
-#  
-
 class RegressionApp:
     DEFAULTS = {'alpha'  : 0,
                 'da'     : 1,
@@ -113,9 +107,9 @@ class RegressionApp:
         self.model.make_plot_data()
         self.plotter = RegressionPlot(self.model)
 
-        # placeholder
-        fig, ax = plt.subplots(figsize=(4,4))
-        st.pyplot(self.plotter.fig)
+        # Create some columns (figure is too big)
+        plot_cols = st.columns([1,5,1])
+        plot_cols[1].pyplot(self.plotter.fig, use_container_width=True)
         return
 
 class RegressionPlot:
@@ -135,8 +129,8 @@ class RegressionPlot:
         self.ax.set_ylabel('y')
 
         padding = 0.1
-        self.ax.set_xlim([min(self.data.X_data)-padding, 
-                          max(self.data.X_data)+padding])
+        self.ax.set_xlim([self.data.xmin-padding, 
+                          self.data.xmax+padding])
         self.ax.set_ylim([min(self.data.y)-padding, 
                           max(self.data.y)+padding])
 
@@ -155,37 +149,36 @@ class SomeRegression:
         return
 
     def make_data(self):
-        print('\n\n\ndata created\n\n\n')
         x = np.random.random(size=self.n)
-        y = 1 + 2*x# + np.random.normal(scale=0.2, size=self.n)
+        y = 1 + 2*x + np.random.normal(scale=0.2, size=self.n)
         self.x = x
         self.y = y
         return
 
     def fit_model(self):
         self.pf = PF(degree=self.p)
+        self.ss = SS()
         X = self.pf.fit_transform(self.x.reshape(-1,1))
-        ss = SS()
-        X = ss.fit_transform(X)
+        X = self.ss.fit_transform(X)
         self.X = X
-        self.ss = ss
         model = Ridge(alpha=self.a)
         model.fit(self.X,self.y)
         self.model = model
         return
 
-    def make_plot_data(self, res=100):
-        # Model is fit to self.X...
+    def make_plot_data(self, res=500):
         self.X_data = self.X[:,1]
+        self.xmin = min(self.X_data)
+        self.xmax = max(self.X_data)
+        self.xmodel = np.linspace(self.xmin, self.xmax, res)
+        X = self.pf.transform(self.xmodel.reshape(-1,1))
+        X = self.ss.transform(X)
 
-        x_model = np.linspace(min(self.X_data.ravel()), max(self.X_data.ravel()), res)
-        X_model = self.pf.transform(x_model.reshape(-1,1))
-        X_model = self.ss.transform(X_model)
-        self.x_model = X_model[:,1]
-        self.y_model = self.model.predict(X_model)
+        self.y_model = self.model.predict(X)
+        self.x_model = X[:,1]
         return
     
-    def get_equation(self, fmt='.1f'):
+    def get_equation(self, fmt='.2f'):
         eq = '$y \\approx' + format(self.model.intercept_, fmt)
         for p,c in enumerate(self.model.coef_[1:]):
             if round(abs(c),2) > 0:
@@ -196,7 +189,6 @@ class SomeRegression:
         eq += '$'
         eq = eq.replace('+-', '-')
         return eq
-
 
 if __name__ == '__main__':
     RegressionApp()
