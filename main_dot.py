@@ -23,7 +23,7 @@ class MoveTheDot:
 
         self.build_page()
         return
-    
+#region 
     def update_figure(self):
         self.scat.set_offsets(self.data)
         return
@@ -47,7 +47,7 @@ class MoveTheDot:
         self.data[0]%=1
         self.update_figure()
         return
-    
+#endregion
     def build_page(self):
         st.write("# Move the dot!")
 
