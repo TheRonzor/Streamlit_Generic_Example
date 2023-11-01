@@ -110,6 +110,21 @@ class RegressionApp:
         # Create some columns (figure is too big)
         plot_cols = st.columns([1,5,1])
         plot_cols[1].pyplot(self.plotter.fig, use_container_width=True)
+
+        self.streamlit_defaults()
+        return
+    
+    def streamlit_defaults(self):
+        '''
+        Remove some auto-generated stuff by streamlit
+        '''
+        hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+        st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
         return
 
 class RegressionPlot:
